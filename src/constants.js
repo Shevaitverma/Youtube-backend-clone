@@ -1,6 +1,6 @@
 const DB_NAME = "youtube";
 
 
-export default {
+export {
     DB_NAME
 }
