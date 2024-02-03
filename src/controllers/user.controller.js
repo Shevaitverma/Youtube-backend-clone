@@ -1,8 +1,7 @@
 import asyncHandler from 'express-async-handler';
 import {User} from '../models/user.model.js';
 import {ApiError} from '../utils/ApiError.js';
-import {updoadOnCloudinary} from "../utils/cloudinary.js";
-import { upload } from '../middlewares/multer.middleware.js';
+import {uploadOnCloudinary} from "../utils/cloudinary.js";
 import {ApiResponse} from '../utils/ApiResponse.js';
 
 // register user controller
@@ -31,16 +30,21 @@ const registerUser = asyncHandler(async(req, res)=>{
 
     // check for images and avatar
     const avatarLocalPath = req.files?.avatar[0]?.path;
-    const coverImageLocalPath = req.files?.coverIamge[0]?.path;
+    const coverImageLocalPath = req.files?.coverImage[0]?.path;
+    // let coverImageLocalPath;
+    // if (req.files && Array.isArray(req.files.coverImage) && req.files.coverImage.length > 0) {
+    //     coverImageLocalPath = req.files.coverImage[0].path
+    // }
     if(!avatarLocalPath){
         throw new ApiError(400, "Please add avatar")
     }
+    console.log(avatarLocalPath, coverImageLocalPath);
 
     // upload them to cloudinary
-    const avatar = await updoadOnCloudinary(avatarLocalPath);
-    const coverImage = await updoadOnCloudinary(coverImageLocalPath);
+    const avatar = await uploadOnCloudinary(avatarLocalPath);
+    const coverImage = await uploadOnCloudinary(coverImageLocalPath);
     if(!avatar){
-        throw new ApiError(400, "Please add avatar")
+        throw new ApiError(400, "Avatar is not able to upload")
     }
 
     // create user object - create entry in DB
