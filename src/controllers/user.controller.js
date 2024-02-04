@@ -8,7 +8,7 @@ import {ApiResponse} from '../utils/ApiResponse.js';
 const registerUser = asyncHandler(async(req, res)=>{
 
     // get user details
-    const {fullName, email, username, password} = req.body;
+    const {fullname, email, username, password} = req.body;
 
     // validation if user entered details or not 
     // method 1
@@ -16,7 +16,7 @@ const registerUser = asyncHandler(async(req, res)=>{
     //     throw new ApiError(400, "All fields are required")
     // }
     //method 2 
-    if([fullName, email, username, password].some((field) => field?.trim() === "")){
+    if([fullname, email, username, password].some((field) => field?.trim() === "")){
         throw new ApiError(400, "All fields are required")
     }
 
@@ -49,11 +49,11 @@ const registerUser = asyncHandler(async(req, res)=>{
 
     // create user object - create entry in DB
     const user = await User.create({
-        fullName,
+        fullname,
         avatar: avatar.url,
         coverImage: coverImage?.url || "",
         email,
-        username: username.toLowerCase(),
+        username: username,
         password
     })
 
