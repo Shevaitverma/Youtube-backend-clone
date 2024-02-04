@@ -22,23 +22,26 @@ const registerUser = asyncHandler(async(req, res)=>{
 
     // check if usr already exists - username and email
     const ifExist = await User.findOne({
-        for: [{username}, {email}]
+        $or: [{username}, {email}]
     })
     if(ifExist){
+        
         throw new ApiError(406,"User is already exists")
     }
+    // console.log(req.files);
 
     // check for images and avatar
     const avatarLocalPath = req.files?.avatar[0]?.path;
-    const coverImageLocalPath = req.files?.coverImage[0]?.path;
-    // let coverImageLocalPath;
-    // if (req.files && Array.isArray(req.files.coverImage) && req.files.coverImage.length > 0) {
-    //     coverImageLocalPath = req.files.coverImage[0].path
-    // }
+    // const coverImageLocalPath = req.files?.coverImage[0]?.path;
+    let coverImageLocalPath;
+    if (req.files && Array.isArray(req.files.coverImage) && req.files.coverImage.length > 0) {
+        coverImageLocalPath = req.files.coverImage[0].path
+    }
+
     if(!avatarLocalPath){
         throw new ApiError(400, "Please add avatar")
     }
-    console.log(avatarLocalPath, coverImageLocalPath);
+    // console.log(avatarLocalPath, coverImageLocalPath);
 
     // upload them to cloudinary
     const avatar = await uploadOnCloudinary(avatarLocalPath);

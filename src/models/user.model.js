@@ -6,7 +6,7 @@ const userSchema = new Schema({
     username:{
         type: String,
         required: [true, 'please add an username'],
-        unique: true,
+        unique: [true, 'username must me unique'],
         lowercase: true,
         trim: true,
         index: true
@@ -14,7 +14,7 @@ const userSchema = new Schema({
     email:{
         type: String,
         required: [true, "please add an email"],
-        unique: true,
+        unique: [true, 'Email must be unique'],
         lowercase: true,
         trim: true,
         match:[
