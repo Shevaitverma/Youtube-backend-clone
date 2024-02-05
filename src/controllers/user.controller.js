@@ -4,6 +4,22 @@ import {ApiError} from '../utils/ApiError.js';
 import {uploadOnCloudinary} from "../utils/cloudinary.js";
 import {ApiResponse} from '../utils/ApiResponse.js';
 
+// generate access and refresh tokens
+const generateAccessAndRefreshToken = async(userId) => {
+    try {
+        const user = await User.findById(userId)
+        const accessToken = user.generateAccessToken()
+        const refreshToken = user.generateRefreshToken()
+
+        user.refreshToken = refreshToken
+        await user.save({validateBeforeSave: false})
+
+        return {accessToken, refreshToken}
+    } catch (error) {
+        throw new ApiError(500, "something went wrong while generating refresh and access token")
+    }
+}
+
 // register user controller
 const registerUser = asyncHandler(async(req, res)=>{
 
@@ -25,7 +41,6 @@ const registerUser = asyncHandler(async(req, res)=>{
         $or: [{username}, {email}]
     })
     if(ifExist){
-        
         throw new ApiError(406,"User is already exists")
     }
     // console.log(req.files);
@@ -75,6 +90,56 @@ const registerUser = asyncHandler(async(req, res)=>{
 })
 
 // login user controller 
+const loginUser = asyncHandler(async(req, res)=>{
+    // get data from body 
+    const {username, email, password} = req.body;
+
+    // username or email
+    if(!username || !email){
+        throw new ApiError(400, "Username or Email is required")
+    }
+
+    // find the user
+    const user = await User.findOne({
+        $or : [{username}, {email}] // mongo quiery for OR operator
+    })
+    if(!user){
+        throw new ApiError(400, "User not exist, Please check username and password")
+    }
+
+    // check the password
+    const checkPass = await user.isPasswordCorrect(password);
+    if(!checkPass){
+        throw new ApiError(401, "Password is incorrect")
+    }
+
+    // access and refresh token 
+    const {accessToken, refreshToken} = generateAccessAndRefreshToken(user._id)
+    const loggedInUser = await User.findById(user._id).select("-password -refreshToken");
+
+    // send cookie 
+    const options = {
+        httpOnly: true,
+        secure: true
+    }
+    return res
+    .status(200)
+    .cookie("accessToken", accessToken, options)
+    .json(
+        new ApiResponse(
+            200,
+            {
+                user: loggedInUser, accessToken, refreshToken
+            },
+            "User Logged in sucessfully"
+        )
+    )
+})
+
+// Logout user 
+const logoutUser = asyncHandler (async(req, res)=>{
+
+})
 
 // check user if logged in or not...
 
@@ -82,4 +147,4 @@ const registerUser = asyncHandler(async(req, res)=>{
 
 // delete user...
 
-export {registerUser};
+export {registerUser, loginUser};
