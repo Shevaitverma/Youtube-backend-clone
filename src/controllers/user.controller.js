@@ -5,18 +5,24 @@ import {uploadOnCloudinary} from "../utils/cloudinary.js";
 import {ApiResponse} from '../utils/ApiResponse.js';
 
 // generate access and refresh tokens
-const generateAccessAndRefreshToken = async(userId) => {
+const generateAccessAndRefereshTokens = async(userId) =>{
     try {
         const user = await User.findById(userId)
+        if(!user){
+            throw new ApiError(404, "User not found")
+        }
         const accessToken = user.generateAccessToken()
         const refreshToken = user.generateRefreshToken()
 
         user.refreshToken = refreshToken
-        await user.save({validateBeforeSave: false})
+        await user.save({ validateBeforeSave: false })
 
         return {accessToken, refreshToken}
+
+
     } catch (error) {
-        throw new ApiError(500, "something went wrong while generating refresh and access token")
+        console.error('Error generating tokens:', error);
+        throw new ApiError(500, "Something went wrong while generating referesh and access token")
     }
 }
 
@@ -95,7 +101,7 @@ const loginUser = asyncHandler(async(req, res)=>{
     const {username, email, password} = req.body;
 
     // username or email
-    if(!username || !email){
+    if(!username && !email){
         throw new ApiError(400, "Username or Email is required")
     }
 
@@ -114,31 +120,71 @@ const loginUser = asyncHandler(async(req, res)=>{
     }
 
     // access and refresh token 
-    const {accessToken, refreshToken} = generateAccessAndRefreshToken(user._id)
-    const loggedInUser = await User.findById(user._id).select("-password -refreshToken");
+    try {
+        const {accessToken, refreshToken} = await generateAccessAndRefereshTokens(user._id)
+        const loggedInUser = await User.findById(user._id).select("-password -refreshToken");
+    
+        // send cookie 
+        const options = {
+            httpOnly: true,
+            secure: true
+        }
+        return res
+        .status(201)
+        .cookie("accessToken", accessToken, options)
+        .cookie("refreshToken", refreshToken, options)
+        .json(
+            new ApiResponse(
+                200,
+                {
+                    user: loggedInUser, accessToken, refreshToken
+                },
+                "User Logged in sucessfully",
+                
+            )
+        )
+    } catch (error) {
+        console.error('Error generating tokens:', error);
+        throw new ApiError(500, 'Token generation failed');
+    }
+    
+})
 
-    // send cookie 
+// Logout user 
+const logoutUser = asyncHandler (async(req, res)=>{
+    
+    // quiery to clear refresh token
+    // method 1
+    // await User.findByIdAndUpdate(
+    //     req.user._id,
+    //     {
+    //         $set: {
+    //             refreshToken: undefined
+    //         }
+    //     }
+    // )
+    
+    // method 2
+    await User.findByIdAndUpdate(
+        req.user._id,
+        {
+            $unset: {
+                refreshToken: '',
+            },
+        }
+    );
+    
+
+    // for clearing cookie
     const options = {
         httpOnly: true,
         secure: true
     }
     return res
     .status(200)
-    .cookie("accessToken", accessToken, options)
-    .json(
-        new ApiResponse(
-            200,
-            {
-                user: loggedInUser, accessToken, refreshToken
-            },
-            "User Logged in sucessfully"
-        )
-    )
-})
-
-// Logout user 
-const logoutUser = asyncHandler (async(req, res)=>{
-
+    .clearCookie("accessToken", options)
+    .clearCookie("refreshToken", options)
+    .json(new ApiResponse(200, {}, "User logged out sucessfully"))
 })
 
 // check user if logged in or not...
@@ -147,4 +193,4 @@ const logoutUser = asyncHandler (async(req, res)=>{
 
 // delete user...
 
-export {registerUser, loginUser};
+export {registerUser, loginUser ,logoutUser};
