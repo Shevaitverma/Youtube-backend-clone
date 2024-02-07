@@ -3,6 +3,7 @@ import {User} from '../models/user.model.js';
 import {ApiError} from '../utils/ApiError.js';
 import {uploadOnCloudinary} from "../utils/cloudinary.js";
 import {ApiResponse} from '../utils/ApiResponse.js';
+import jwt from "jsonwebtoken";
 
 // generate access and refresh tokens
 const generateAccessAndRefereshTokens = async(userId) =>{
@@ -187,10 +188,54 @@ const logoutUser = asyncHandler (async(req, res)=>{
     .json(new ApiResponse(200, {}, "User logged out sucessfully"))
 })
 
-// check user if logged in or not...
+// refresh Access token 
+const refreshAccessToken = asyncHandler( async(req, res)=> {
+    // request refresh token from cookies
+    const incomingRefreshToken = req.cookies.refreshToken || req.body.refreshToken
+    if(!incomingRefreshToken){
+        throw new ApiError(401, "Unauthorized request")
+    }
+    try {
+        const decodedToken = jwt.verify(
+            incomingRefreshToken,
+            process.env.REFRESH_TOKEN_SECRET
+        )
+    
+        // quiery to get userInfo from the decoded Token's _id
+        const user = await User.findById(decodedToken?._id);
+        if(!user){
+            throw new ApiError(401, "Invalid refresh token")
+        }
+    
+        if(incomingRefreshToken !== user?.refreshToken){
+            throw new ApiError(401, "Refresh token is expired or used")
+        }
+    
+        const options = {
+            httpOnly: true,
+            secure: true
+        }
+    
+        const {accessToken, newRefreshToken} = await generateAccessAndRefereshTokens(user._id)
+    
+        return res
+        .status(200)
+        .cookie("accessToken",accessToken,options)
+        .cookie("refreshToken",newRefreshToken, options)
+        .json(
+            new ApiResponse(
+                200, 
+                {accessToken, refreshToken: newRefreshToken},
+                "Access token refreshed"
+            )
+        )
+    } catch (error) {
+        throw new ApiError(401, error?.message || "Invalid refresh token")
+    }
+})
 
 // update user details...
 
 // delete user...
 
-export {registerUser, loginUser ,logoutUser};
+export {registerUser, loginUser ,logoutUser, refreshAccessToken};
