@@ -234,8 +234,49 @@ const refreshAccessToken = asyncHandler( async(req, res)=> {
     }
 })
 
+// change password  
+const changeCurrentPassword = asyncHandler(async(req, res)=>{
+    // get data from body 
+    const {oldPassword, newPassword} = req.body;
+
+    // get user data 
+    const user = await User.findById(req.user?.id);
+    // check if password is correct
+    const isPasswordCorrect = await user.isPasswordCorrect(oldPassword);
+    if(!isPasswordCorrect){
+        throw new ApiError(401, "Old password is invaild");
+    }
+
+    // set new password 
+    user.password = newPassword;
+    await user.save({validateBeforeSave: false})
+
+    // returning response
+    return res.status(200)
+    .json(
+        new ApiResponse(
+            200,
+            {},
+            "Password changed successfully"
+        )
+    )
+})
+
+// current user 
+const getCurrentUser = asyncHandler(async(req, res)=>{
+    return res
+    .status(200)
+    .json(
+        ApiResponse(
+            200,
+            req.user,
+            "Current user fetched successfully"
+        )
+    )
+})
+
 // update user details...
 
 // delete user...
 
-export {registerUser, loginUser ,logoutUser, refreshAccessToken};
+export {registerUser, loginUser ,logoutUser, refreshAccessToken, changeCurrentPassword, getCurrentUser};
