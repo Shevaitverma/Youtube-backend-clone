@@ -238,16 +238,20 @@ const refreshAccessToken = asyncHandler( async(req, res)=> {
 const changeCurrentPassword = asyncHandler(async(req, res)=>{
     // get data from body 
     const {oldPassword, newPassword} = req.body;
-
-    // get user data 
-    const user = await User.findById(req.user?.id);
-    // check if password is correct
-    const isPasswordCorrect = await user.isPasswordCorrect(oldPassword);
-    if(!isPasswordCorrect){
-        throw new ApiError(401, "Old password is invaild");
+    if (!oldPassword || !newPassword) {
+        throw new ApiError(400, "Both oldPassword and newPassword are required");
     }
 
-    // set new password 
+    // get user data 
+    const user = await User.findById(req.user?._id);
+    
+    // check if password is correct
+    const checkPass = await user.isPasswordCorrect(oldPassword);
+    if(!checkPass){
+        throw new ApiError(401, "Password is incorrect")
+    }
+
+    // // set new password 
     user.password = newPassword;
     await user.save({validateBeforeSave: false})
 
@@ -267,7 +271,7 @@ const getCurrentUser = asyncHandler(async(req, res)=>{
     return res
     .status(200)
     .json(
-        ApiResponse(
+        new ApiResponse(
             200,
             req.user,
             "Current user fetched successfully"
