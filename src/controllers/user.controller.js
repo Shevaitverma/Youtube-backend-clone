@@ -279,8 +279,116 @@ const getCurrentUser = asyncHandler(async(req, res)=>{
     )
 })
 
-// update user details...
+// update account details...
+const updateAccountDetails = asyncHandler(async(req, res)=> {
+    
+    // get data from the body 
+    const {fullname, email} = req.body;
+
+    if(!fullname || !email){
+        throw new ApiError(401, "All fields are required");
+    }
+
+    // update user 
+    const user = User.findByIdAndUpdate(
+        req.user?._id,
+        {
+            $set: {
+                fullname,
+                email: email
+            }
+        }
+    ).select("-password")
+    if(!user){
+        throw new ApiError(401, "Something went wrong while updating")
+    }
+
+    return res.status(200)
+    .json(
+        new ApiResponse(200, user, "Account details updated successfully")
+    )
+})
+
+// update avatar 
+const updateUserAvatar = asyncHandler(async(req, res)=> {
+
+    // get avatar file
+    const avatarLocalPath = req.file?.path;
+    if(!avatarLocalPath){
+        throw new ApiError(401, "Avatar file is mising")
+    }
+
+    // upload file 
+    const avatar = await uploadOnCloudinary(avatarLocalPath);
+    if(!avatar.url){
+        throw new ApiError(401, "Error while uploading avatar")
+    }
+
+    // update field 
+    const user = await User.findByIdAndUpdate(
+        req.user?._id,
+        {
+            $set:{
+                avatar: avatar.url
+            }
+        },
+        {new:true}
+    ).select("-password")
+    if(!user){
+        throw new ApiError(401, "Avatar is not updated")
+    }
+
+    return res.status(200)
+    .json(
+        new ApiResponse(200, user, "Avatar updated successfully")
+    )
+})
+
+// update user cover image 
+const updateUserCoverIamge = asyncHandler(async(req, res)=> {
+
+    // get avatar file
+    const coverImageLocalPath = req.file?.path;
+    if(!coverImageLocalPath){
+        throw new ApiError(401, "cover iamge file is mising")
+    }
+
+    // upload file 
+    const coverImage = await uploadOnCloudinary(coverImageLocalPath);
+    if(!coverImage.url){
+        throw new ApiError(401, "Error while uploading Cover image")
+    }
+
+    // update field 
+    const user = await User.findByIdAndUpdate(
+        req.user?._id,
+        {
+            $set:{
+                coverImage: coverImage.url
+            }
+        },
+        {new:true}
+    ).select("-password")
+    if(!user){
+        throw new ApiError(401, "Cover image is not updated")
+    }
+
+    return res.status(200)
+    .json(
+        new ApiResponse(200, user, "Cover image updated successfully")
+    )
+})
 
 // delete user...
 
-export {registerUser, loginUser ,logoutUser, refreshAccessToken, changeCurrentPassword, getCurrentUser};
+export {
+    registerUser, 
+    loginUser,
+    logoutUser, 
+    refreshAccessToken, 
+    changeCurrentPassword, 
+    getCurrentUser,
+    updateAccountDetails,
+    updateUserAvatar, 
+    updateUserCoverIamge
+};
