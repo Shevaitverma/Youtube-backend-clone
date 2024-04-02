@@ -1,7 +1,8 @@
 import asyncHandler from 'express-async-handler';
 import {User} from '../models/user.model.js';
 import {ApiError} from '../utils/ApiError.js';
-import {uploadOnCloudinary} from "../utils/cloudinary.js";
+import { uploadOnCloudinary } from "../utils/cloudinary.js";
+import { deleteOldFile } from '../utils/cloudinaryDelete.js';
 import {ApiResponse} from '../utils/ApiResponse.js';
 import jwt from "jsonwebtoken";
 
@@ -195,7 +196,6 @@ const refreshAccessToken = asyncHandler( async(req, res)=> {
     if(!incomingRefreshToken){
         throw new ApiError(401, "Unauthorized request")
     }
-    console.log(incomingRefreshToken);
     const decodedToken = jwt.verify(
         incomingRefreshToken,
         process.env.REFRESH_TOKEN_SECRET
@@ -216,16 +216,16 @@ const refreshAccessToken = asyncHandler( async(req, res)=> {
         secure: true
     }
 
-    const {accessToken, newRefreshToken} = await generateAccessAndRefereshTokens(user._id)
+    const {accessToken, refreshToken} = await generateAccessAndRefereshTokens(user._id);
 
     return res
     .status(200)
     .cookie("accessToken",accessToken,options)
-    .cookie("refreshToken",newRefreshToken, options)
+    .cookie("refreshToken",refreshToken, options)
     .json(
         new ApiResponse(
             200, 
-            {accessToken, refreshToken: newRefreshToken},
+            {accessToken, refreshToken},
             "Access token refreshed"
         )
     )
@@ -311,6 +311,8 @@ const updateUserAvatar = asyncHandler(async(req, res)=> {
 
     // get avatar file
     const avatarLocalPath = req.file?.path;
+    const avatarOldCloudinaryURL = req.user?.avatar;
+    
     if(!avatarLocalPath){
         throw new ApiError(401, "Avatar file is mising")
     }
@@ -321,6 +323,20 @@ const updateUserAvatar = asyncHandler(async(req, res)=> {
         throw new ApiError(401, "Error while uploading avatar")
     }
 
+    // Delete old Cloudinary file.
+    
+        if (avatar.url && avatarOldCloudinaryURL) {
+            
+                // console.log("Now delete old avatar image from cloudinary")
+    
+                const deleteAvatar = await deleteOldFile(avatarOldCloudinaryURL)
+                // console.log("deleteAvatar :", deleteAvatar)
+                if (!deleteAvatar){
+                    throw new ApiError(500, "Old Avator image failed to delete from cloudinary")
+                }
+        }
+
+    
     // update field 
     const user = await User.findByIdAndUpdate(
         req.user?._id,
@@ -346,6 +362,8 @@ const updateUserCoverIamge = asyncHandler(async(req, res)=> {
 
     // get avatar file
     const coverImageLocalPath = req.file?.path;
+    const coverImageOldCloudinaryURL = req.user?.coverImage;
+
     if(!coverImageLocalPath){
         throw new ApiError(401, "cover iamge file is mising")
     }
@@ -355,6 +373,22 @@ const updateUserCoverIamge = asyncHandler(async(req, res)=> {
     if(!coverImage.url){
         throw new ApiError(401, "Error while uploading Cover image")
     }
+
+    // Delete old Cloudinary file.
+    
+        if (coverImage.url && coverImageOldCloudinaryURL) {
+            try {
+                // console.log("Now delete old avatar image from cloudinary")
+    
+                const deleteCoverImage = await deleteOldFile(coverImageOldCloudinaryURL)
+                // console.log("deleteCoverImage :", deleteCoverImage)
+                if (!deleteCoverImage){
+                    throw new ApiError(500, "Old Cover image failed to delete from cloudinary")
+                }
+            } catch (error) {
+                throw new ApiError(501, `"Old Cover image failed to delete from cloudinary error : ${error}"`)
+            }
+        }
 
     // update field 
     const user = await User.findByIdAndUpdate(
