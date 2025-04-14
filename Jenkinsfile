@@ -33,7 +33,7 @@ pipeline {
                 pm2 delete server || true
 
                 # Start server with PM2
-                pm2 start index.js --name "server" -- start
+                pm2 start src/index.js --name "server" -- start
 
                 # Save process list for startup
                 pm2 save
