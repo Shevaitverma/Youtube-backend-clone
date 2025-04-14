@@ -1,5 +1,5 @@
 pipeline {
-    agent {label 'agent1'}
+    agent {label 'server-agent'}
 
     environment {
         NVM_DIR = "${HOME}/.nvm"
@@ -19,8 +19,6 @@ pipeline {
         stage('Install Dependencies') {
             steps {
                 sh '''
-                export NVM_DIR="$HOME/.nvm"
-                . "$NVM_DIR/nvm.sh"
                 npm install
                 '''
             }
@@ -29,8 +27,6 @@ pipeline {
         stage('Build') {
             steps {
                 sh '''
-                export NVM_DIR="$HOME/.nvm"
-                . "$NVM_DIR/nvm.sh"
                 npm run build
                 '''
             }
@@ -40,8 +36,14 @@ pipeline {
             steps {
                 echo 'Deploying to production folder...'
                 sh '''
-                sudo rm -rf /var/www/html/*
-                sudo cp -r dist/* /var/www/html/
+                # Stop existing process if running
+                pm2 delete server || true
+
+                # Start server with PM2
+                pm2 start index.js --name "server" -- start
+
+                # Save process list for startup
+                pm2 save
                 '''
             }
         }
