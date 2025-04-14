@@ -37,6 +37,9 @@ pipeline {
 
                 # Save process list for startup
                 pm2 save
+
+                # for restarting if there is any changes 
+                pm2 restart 0
                 '''
             }
         }
