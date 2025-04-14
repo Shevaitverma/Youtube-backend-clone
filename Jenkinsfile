@@ -25,14 +25,6 @@ pipeline {
             }
         }
 
-        stage('Build') {
-            steps {
-                sh '''
-                npm run build
-                '''
-            }
-        }
-
         stage('Deploy') {
             steps {
                 echo 'Deploying to production folder...'
