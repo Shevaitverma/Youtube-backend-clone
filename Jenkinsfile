@@ -20,6 +20,7 @@ pipeline {
             steps {
                 sh '''
                 npm install
+                aws s3 cp s3://myenv0002/.env-server .env
                 '''
             }
         }
